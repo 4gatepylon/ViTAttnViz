@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Comparison with Opacity Grid</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .image-wrapper {
+            position: relative;
+        }
+        .overlay-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* Adjust the number here for 'n' */
+            grid-template-rows: repeat(4, 1fr);    /* Adjust the number here for 'm' */
+        }
+        .overlay-cell {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Original image -->
+        <img src="./demo/cat.png" alt="Original Image">
+
+        <!-- Image with overlay -->
+        <div class="image-wrapper">
+            <img src="./demo/cat.png" alt="Image with Overlay">
+            <div class="overlay-grid">
+                <!-- Grid cells will be added here using JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.querySelector('.overlay-grid');
+        const rows = 4; // 'm' value
+        const cols = 5; // 'n' value
+
+        for (let i = 0; i < rows * cols; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'overlay-cell';
+            const opacity = Math.random() * 0.5; // Random opacity between 0 and 0.5
+            cell.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+            grid.appendChild(cell);
+        }
+    </script>
+</body>
+</html>
