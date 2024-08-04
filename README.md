@@ -26,3 +26,4 @@ python3 compiler.py ./demo/cat.png ./demo/horse.png ./demo/spacex.png \
 
 ## Running With SAM 2.0 (Segment Anything 2.0)
 TODO(Adriano)
+TODO(Adriano) get it working from a pillow image or numpy image (RGB)
