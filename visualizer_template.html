@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Analysis with 4D Tensor</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .image-wrapper {
+            position: relative;
+        }
+        .overlay-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: grid;
+            pointer-events: none;
+        }
+        .overlay-cell {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background-color: orange;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <select id="imageSelector"></select>
+    <div class="container">
+        <img id="image1" alt="Original Image">
+        <div class="image-wrapper" id="image2-wrapper">
+            <img id="image2" alt="Interactive Image">
+            <div id="overlayGrid2" class="overlay-grid"></div>
+        </div>
+        <div class="image-wrapper">
+            <img id="image3" alt="Tensor Visualization">
+            <div id="overlayGrid" class="overlay-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        const MIN_OPACITY = 0;
+        const MAX_OPACITY = 0.8;
+
+        // 4044e411-a988-4834-b453-193d4bbef321
+        //////////////// INSERT DATA HERE ////////////////
+        // Delete everything here and replace with a semantically equivalent 
+        // code. As many images, etc... as you want so long as the paths, etc... match OK
+        //
+        // The way this works is in `compiler.py` but basically it will take in the tensors
+        // and images that you actually want and then replace this code based on the uuid string
+        const current_image = ['./demo/cat.png'];
+        const images = ['./demo/cat.png', './demo/horse.png', './demo/spacex.png'];
+
+        const selection_tensors = {
+            './demo/cat.png': createTransluscentTensor(3, 3),
+            './demo/horse.png': createTransluscentTensor(3, 3),
+            './demo/spacex.png': createTransluscentTensor(3, 3)
+        }
+        const tensors = {
+            './demo/cat.png': createRandomTensor(3, 3, 4, 4),
+            './demo/horse.png': createRandomTensor(3, 3, 4, 4),
+            './demo/spacex.png': createRandomTensor(3, 3, 4, 4)
+        };
+        //////////////// INSERT DATA HERE ////////////////
+        // b180600e-4295-4f5d-8b13-bd0992b955f3
+
+        const imageSelector = document.getElementById('imageSelector');
+        const image1 = document.getElementById('image1');
+        const image2 = document.getElementById('image2');
+        const image3 = document.getElementById('image3');
+        const overlayGrid = document.getElementById('overlayGrid');
+        const overlayGrid2 = document.getElementById('overlayGrid2');
+        const imageWrapper2 = document.getElementById('image2-wrapper');
+
+        // Support making a random tensor to visualize WHAT the attention pattern is for
+        // that specific tile of the image (used for the demo)
+        function createRandomTensor(n1, m1, n2, m2) {
+            return Array(n1).fill().map(() => 
+                Array(m1).fill().map(() => 
+                    Array(n2).fill().map(() => 
+                        Array(m2).fill().map(() => Math.random())
+                    )
+                )
+            );
+        }
+        
+        // Support making a weakly opaque tensor to be able to visualize
+        // WHERE we are hovering a little better (used for the demo)
+        function createTransluscentTensor(n1, m1) {
+            return Array(n1).fill().map(() => 
+                Array(m1).fill().map(() => 
+                    Array(n1).fill().map(() => 
+                        Array(m1).fill().map(() => 0.1)
+                    )
+                )
+            );
+        }
+
+        // Update overlay helpers
+        function updateOverlayGrid_generic(tensor, object, r = 255, g = 165, b = 0) {
+            object.innerHTML = '';
+            object.style.gridTemplateColumns = `repeat(${tensor.length}, 1fr)`;
+            object.style.gridTemplateRows = `repeat(${tensor[0].length}, 1fr)`;
+
+            tensor.forEach(row => {
+                row.forEach(value => {
+                    const cell = document.createElement('div');
+                    cell.className = 'overlay-cell';
+                    const opacity = (1 - value) * (MAX_OPACITY - MIN_OPACITY) + MIN_OPACITY;
+                    cell.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                    object.appendChild(cell);
+                });
+            });
+        }
+        function updateOverlayGrid(x, y, src, idx) {
+            console.log(`get tensors src ${src}`)
+            const tensor = tensors[src][y][x]
+            updateOverlayGrid_generic(tensor, overlayGrid, r = 255, g = 165, b = 0);
+        }
+        function updateOverlayGrid2(x, y, src) {
+            const selection_tensor = selection_tensors[src];
+            selection_tensor.forEach(row => row.fill(0.9));
+            selection_tensor[y][x] = 0.1;
+            updateOverlayGrid_generic(selection_tensor, overlayGrid2,  r = 0, g = 165, b = 255);
+        }
+        
+        // Initialization shit
+        function populateImageSelector() {
+            images.forEach((img, index) => {
+                const option = document.createElement('option');
+                option.value = img;
+                option.textContent = `Image ${img}`; //`Image ${index + 1}`;
+                imageSelector.appendChild(option);
+            });
+        }
+
+        function updateImages(imagePath) {
+            console.log(`UPDATING IMAGE (AND TENSOR): Image path ${imagePath}`) // DEBUG
+            image1.src = imagePath;
+            image2.src = imagePath;
+            image3.src = imagePath;
+            current_image[0] = imagePath;
+            updateOverlayGrid(0, 0, imagePath);
+            updateOverlayGrid2(0, 0, imagePath);
+        }
+
+        imageSelector.addEventListener('change', (e) => updateImages(e.target.value));
+
+        // On-mouse-move listener
+        imageWrapper2.addEventListener('mousemove', (e) => {
+            const rect = e.target.getBoundingClientRect();
+            console.log(e)
+            const cimage = current_image[0];
+            const sel_t = selection_tensors[cimage];
+            const real_x = e.clientX - rect.left;
+            const real_y = e.clientY - rect.top;
+            const scaled_x = real_x / rect.width;
+            const scaled_y = real_y / rect.height;
+            const x = Math.floor(scaled_x * sel_t.length);
+            const y = Math.floor(scaled_y * sel_t[0].length);
+            // console.log(x) // DEBUG
+            // console.log(y) // DEBUG
+            updateOverlayGrid(x, y, cimage);
+            updateOverlayGrid2(x, y, cimage);
+        });
+        
+        // Run init
+        populateImageSelector();
+        updateImages(images[0]);
+    </script>
+</body>
+</html>
