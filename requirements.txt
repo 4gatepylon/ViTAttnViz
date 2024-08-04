@@ -1,0 +1,8 @@
+click
+numpy
+torch
+jupyterlab
+notebook
+ipython
+jaxtyping
+tqdm
